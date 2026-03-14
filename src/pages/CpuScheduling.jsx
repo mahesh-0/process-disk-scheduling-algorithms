@@ -36,6 +36,8 @@ import {
   CPU_ALGORITHMS,
   computeCPUMetrics,
 } from "../components/algorithms/cpuAlgorithms";
+import { useAuth } from "@/context/AuthContext";
+import { saveSimulationHistory } from "@/firebase/history";
 
 const CHART_COLORS = [
   "hsl(250, 89%, 67%)",
@@ -54,6 +56,7 @@ const chartTooltipStyle = {
 };
 
 export default function CpuScheduling() {
+  const { currentUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const algoFromUrl = searchParams.get("algo") || "fcfs";
 
@@ -83,7 +86,7 @@ export default function CpuScheduling() {
     togglePlayPause,
   } = useSimPlayback(totalSteps, speed);
 
-  const runSimulation = useCallback(() => {
+  const runSimulation = useCallback(async () => {
     const algo = CPU_ALGORITHMS[algorithm];
     if (!algo) return;
 
@@ -95,8 +98,24 @@ export default function CpuScheduling() {
     }
 
     const metrics = computeCPUMetrics(result.results, result.timeline);
-    setSimResult({ ...result, metrics });
-  }, [algorithm, processes, quantum]);
+    const computedResult = { ...result, metrics };
+    setSimResult(computedResult);
+
+    // Save simulation snapshot for the signed-in user.
+    saveSimulationHistory({
+      userId: currentUser?.uid,
+      simulationType: "cpu",
+      algorithm: CPU_ALGORITHMS[algorithm]?.name || algorithm,
+      inputData: {
+        processes,
+        quantum: algorithm === "rr" ? quantum : null,
+      },
+      results: computedResult.results,
+      metrics: computedResult.metrics,
+    }).catch((error) => {
+      console.error("Failed to save CPU simulation history:", error);
+    });
+  }, [algorithm, currentUser?.uid, processes, quantum]);
 
   // When user changes algorithm via dropdown, also update URL
   const handleAlgorithmChange = (newAlgo) => {

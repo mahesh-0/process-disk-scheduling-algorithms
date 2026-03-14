@@ -1,41 +1,105 @@
-import React from "react";
-import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
-import { History, Cpu, HardDrive, Trash2, Clock } from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
+import { History, Cpu, HardDrive, Trash2, Clock, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { format } from "date-fns";
+import { useAuth } from "@/context/AuthContext";
+import {
+  deleteSimulationHistory,
+  fetchSimulationHistory,
+} from "@/firebase/history";
+
+function parseData(value) {
+  if (!value) return {};
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+  return value;
+}
+
+function formatDate(dateString) {
+  if (!dateString) return "Unknown";
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(dateString));
+}
 
 export default function SimHistory() {
-  const {
-    data: history = [],
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ["simHistory"],
-    queryFn: () => base44.entities.SimulationHistory.list("-created_date", 50),
-  });
+  const { currentUser } = useAuth();
+  const [history, setHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const loadHistory = useCallback(
+    async (isManualRefresh = false) => {
+      if (!currentUser?.uid) {
+        setHistory([]);
+        setIsLoading(false);
+        return;
+      }
+
+      if (isManualRefresh) setIsRefreshing(true);
+      try {
+        const data = await fetchSimulationHistory(currentUser.uid);
+        setHistory(data.slice(0, 50));
+      } catch (error) {
+        console.error("Failed to load simulation history:", error);
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [currentUser?.uid],
+  );
+
+  useEffect(() => {
+    setIsLoading(true);
+    loadHistory();
+  }, [loadHistory]);
 
   const deleteEntry = async (id) => {
-    await base44.entities.SimulationHistory.delete(id);
-    refetch();
+    try {
+      await deleteSimulationHistory(id);
+      setHistory((prev) => prev.filter((entry) => entry.id !== id));
+    } catch (error) {
+      console.error("Failed to delete history entry:", error);
+    }
   };
 
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-chart-5/20 to-primary/20 flex items-center justify-center">
-          <History className="w-5 h-5 text-chart-5" />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-chart-5/20 to-primary/20 flex items-center justify-center">
+            <History className="w-5 h-5 text-chart-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">
+              Simulation History
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              {history.length} saved simulations
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">
-            Simulation History
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            {history.length} saved simulations
-          </p>
-        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="gap-1.5"
+          onClick={() => loadHistory(true)}
+          disabled={isRefreshing}
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
       {isLoading ? (
@@ -54,27 +118,15 @@ export default function SimHistory() {
             No simulations saved yet
           </p>
           <p className="text-xs text-muted-foreground/60 mt-1">
-            Run a CPU or Disk scheduling simulation to see it here
+            Run a CPU or Disk scheduling simulation to save and view it here.
           </p>
         </div>
       ) : (
         <div className="space-y-3">
           <AnimatePresence>
             {history.map((entry, i) => {
-              const metrics = (() => {
-                try {
-                  return JSON.parse(entry.metrics);
-                } catch {
-                  return {};
-                }
-              })();
-              const inputData = (() => {
-                try {
-                  return JSON.parse(entry.input_data);
-                } catch {
-                  return {};
-                }
-              })();
+              const metrics = parseData(entry.metrics);
+              const inputData = parseData(entry.input_data);
 
               return (
                 <motion.div
@@ -112,12 +164,7 @@ export default function SimHistory() {
                         <div className="flex items-center gap-1 mt-0.5">
                           <Clock className="w-3 h-3 text-muted-foreground" />
                           <span className="text-[10px] text-muted-foreground">
-                            {entry.created_date
-                              ? format(
-                                  new Date(entry.created_date),
-                                  "MMM d, yyyy HH:mm",
-                                )
-                              : "Unknown"}
+                            {formatDate(entry.created_date)}
                           </span>
                         </div>
                       </div>
@@ -132,7 +179,6 @@ export default function SimHistory() {
                     </Button>
                   </div>
 
-                  {/* Metrics summary */}
                   <div className="mt-3 flex flex-wrap gap-3">
                     {entry.simulation_type === "cpu" ? (
                       <>
@@ -162,8 +208,7 @@ export default function SimHistory() {
                         )}
                         {metrics.avgSeekTime !== undefined && (
                           <span className="text-[10px] font-mono text-accent bg-accent/10 px-2 py-0.5 rounded">
-                            Avg Seek: {Number(metrics.avgSeekTime).toFixed(2)}{" "}
-                            cyl
+                            Avg Seek: {Number(metrics.avgSeekTime).toFixed(2)} cyl
                           </span>
                         )}
                       </>

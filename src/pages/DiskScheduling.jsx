@@ -27,6 +27,8 @@ import DiskInput, { DEFAULT_DISK } from "../components/simulator/DiskInput";
 import SimControls from "../components/simulator/SimControls";
 import useSimPlayback from "../components/simulator/useSimPlayback";
 import { DISK_ALGORITHMS } from "../components/algorithms/diskAlgorithms";
+import { useAuth } from "@/context/AuthContext";
+import { saveSimulationHistory } from "@/firebase/history";
 
 const chartTooltipStyle = {
   background: "hsl(222, 47%, 9%)",
@@ -36,6 +38,7 @@ const chartTooltipStyle = {
 };
 
 export default function DiskScheduling() {
+  const { currentUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const algoFromUrl = searchParams.get("algo") || "fcfs";
 
@@ -73,14 +76,35 @@ export default function DiskScheduling() {
     resetPlayback();
   };
 
-  const runSimulation = useCallback(() => {
+  const runSimulation = useCallback(async () => {
     if (requests.length === 0) return;
     const algo = DISK_ALGORITHMS[algorithm];
     if (!algo) return;
 
     const result = algo.run(requests, head, diskSize);
     setSimResult(result);
-  }, [algorithm, diskSize, head, requests]);
+
+    saveSimulationHistory({
+      userId: currentUser?.uid,
+      simulationType: "disk",
+      algorithm: DISK_ALGORITHMS[algorithm]?.name || algorithm,
+      inputData: {
+        diskSize,
+        head,
+        requests,
+      },
+      results: {
+        sequence: result.sequence,
+        steps: result.steps,
+      },
+      metrics: {
+        totalMovement: result.totalMovement,
+        avgSeekTime: result.avgSeekTime,
+      },
+    }).catch((error) => {
+      console.error("Failed to save disk simulation history:", error);
+    });
+  }, [algorithm, currentUser?.uid, diskSize, head, requests]);
 
   const handleReset = () => {
     setSimResult(null);
