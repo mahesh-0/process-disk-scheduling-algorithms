@@ -72,7 +72,7 @@ export default function Dashboard() {
           </span>
         </div>
         <h1 className="text-4xl md:text-5xl font-bold mb-4">
-          <span className="gradient-text">AlgoSIM</span>
+          <span className="gradient-text">Schedulab</span>
         </h1>
         <p className="text-muted-foreground max-w-xl mx-auto text-sm md:text-base leading-relaxed">
           Interactive CPU and Disk scheduling algorithm simulator with real-time

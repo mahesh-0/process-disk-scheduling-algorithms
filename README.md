@@ -1,4 +1,4 @@
-# AlgoSIM - Process & Disk Scheduling Visualizer
+# Schedulab - Process & Disk Scheduling Visualizer
 
 Interactive simulator for CPU and Disk scheduling algorithms with Firebase Authentication.
 

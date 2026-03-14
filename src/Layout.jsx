@@ -91,7 +91,7 @@ function SidebarContent({ currentPageName, closeMobile }) {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
             <Zap className="w-4 h-4 text-white" />
           </div>
-          <span className="text-lg font-bold gradient-text">AlgoSIM</span>
+          <span className="text-lg font-bold gradient-text">Schedulab</span>
         </Link>
       </div>
 
@@ -147,9 +147,10 @@ function SidebarContent({ currentPageName, closeMobile }) {
                               to={createPageUrl(child.page + child.params)}
                               onClick={closeMobile}
                               className={`block px-3 py-1.5 text-xs rounded-r-md transition-all
-                                ${isChildActive
-                                  ? "text-primary bg-primary/10 border-l-2 border-primary -ml-px"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
+                                ${
+                                  isChildActive
+                                    ? "text-primary bg-primary/10 border-l-2 border-primary -ml-px"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
                                 }`}
                             >
                               {child.name}
@@ -170,9 +171,10 @@ function SidebarContent({ currentPageName, closeMobile }) {
                   to={createPageUrl(item.page)}
                   onClick={closeMobile}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all
-                    ${isActive
-                      ? "text-foreground bg-secondary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                    ${
+                      isActive
+                        ? "text-foreground bg-secondary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                     }`}
                 >
                   <Icon className="w-4 h-4 shrink-0" />
@@ -187,7 +189,7 @@ function SidebarContent({ currentPageName, closeMobile }) {
       {/* Footer */}
       <div className="p-4 border-t border-border">
         <p className="text-[10px] text-muted-foreground text-center">
-          AlgoSIM v1.0 · OS Scheduling Visualizer
+          Schedulab v1.0 · OS Scheduling Visualizer
         </p>
       </div>
     </div>
@@ -247,7 +249,7 @@ export default function Layout({ children, currentPageName }) {
       <aside className="hidden lg:flex w-60 shrink-0 border-r border-border bg-card flex-col">
         <SidebarContent
           currentPageName={currentPageName}
-          closeMobile={() => { }}
+          closeMobile={() => {}}
         />
       </aside>
 
