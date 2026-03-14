@@ -1,0 +1,34 @@
+{
+  "name": "SimulationHistory",
+  "type": "object",
+  "properties": {
+    "simulation_type": {
+      "type": "string",
+      "enum": [
+        "cpu",
+        "disk"
+      ],
+      "description": "Type of simulation"
+    },
+    "algorithm": {
+      "type": "string",
+      "description": "Algorithm used"
+    },
+    "input_data": {
+      "type": "string",
+      "description": "JSON string of input parameters"
+    },
+    "results": {
+      "type": "string",
+      "description": "JSON string of simulation results"
+    },
+    "metrics": {
+      "type": "string",
+      "description": "JSON string of computed metrics"
+    }
+  },
+  "required": [
+    "simulation_type",
+    "algorithm"
+  ]
+}
